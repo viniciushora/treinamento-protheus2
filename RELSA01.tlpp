@@ -1,0 +1,68 @@
+#Include "TOTVS.ch"
+
+#define ENTER CHR(13)+CHR(10)
+
+//  FUNÇÃO PRINCIPAL
+User Function fRELSA01()
+    Private cPerg := "RELSA01"
+    Private cNextAlias := GetNextAlias()
+
+    fValidPerg(cPerg)
+
+    If fPergunte(cPerg, .T.)
+        oReport := fReportDef()
+        oReport :PrintDialog()
+    Endif
+Return
+
+// APRESENTAÇÃO DE DADOS
+Static Function fReportDef()
+    oReport := TReport():New(cPerg, "Relatório de Clientes por Estado", cPerg, {|oReport| ReportPrint(oReport)}, "Impressão de relatório de Clientes por estado")
+    oReport:SetLandscape(.T.)
+    oReport:HideParamPage()
+
+    oSection := TRSection():New(oReport, OEMToAnsi("Relatório de Clientes por Estado"),{"SA1"})
+    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+Return oReport
+
+// FUNÇÃO DE PERGUNTAS
+Static Function fValidPerg(cPerg)
+    RpcSetEnv(;
+		/* cRpcEmp  */ "99",; // Código de grupo de empresas
+		/* cRpcFil  */ "01",; // Código da empresa/filial/unidade de negócio
+		/* cEnvUser */ ,;
+		/* cEnvPass */ ,;
+		/* cEnvMod  */ "COM",; // Módulo: Compras (Sem o SIGA)
+		/* cFunName */ "Teste",; // Nome da função
+		/* aTables  */ {"SX1"} ;
+	)
+
+    Local aAlias := GetArea()
+    Local aRegs := {}
+    Local i,j
+
+    cPerg := PadR(cPerg, Len(SX1->X1_GRUPO), " ")
+
+    AADD(aRegs,{cPerg,"01", "Estado","","","mv_ch1","C",2,0,0,"G","",MV_PAR01,,"","","","","","","","","","","","","","","","","","","","","","","","","12","","","","",""})
+
+    DbSelectArea("SX1")
+    SX1->(DbSetOrder(1))
+    For i := 1 To LEN(aRegs)
+        if !DbSeek(cPerg+aRegs[i,2])
+            RecLock("SX1", .T.)
+                For j := 1 to FCount()
+                    FieldPut(j, aRegs[i,j])
+                Next
+            MsUnlock()
+        Endif
+    Next
+
+RestArea(aAlias)
+Return
