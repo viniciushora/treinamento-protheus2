@@ -3,7 +3,7 @@
 #define ENTER CHR(13)+CHR(10)
 
 //  FUNÇÃO PRINCIPAL
-User Function fRELSA01()
+User Function RELSA01()
     Private cPerg := "RELSA01"
     Private cNextAlias := GetNextAlias()
 
@@ -16,21 +16,57 @@ User Function fRELSA01()
 Return
 
 // APRESENTAÇÃO DE DADOS
-Static Function fReportDef()
-    oReport := TReport():New(cPerg, "Relatório de Clientes por Estado", cPerg, {|oReport| ReportPrint(oReport)}, "Impressão de relatório de Clientes por estado")
+Static Function ReportDef()
+    oReport := TReport():New(cPerg, "Relatório de Produtos por Grupo", cPerg, {|oReport| ReportPrint(oReport)}, "Impressão de relatório de Produtos por Grupo")
     oReport:SetLandscape(.T.)
     oReport:HideParamPage()
 
-    oSection := TRSection():New(oReport, OEMToAnsi("Relatório de Clientes por Estado"),{"SA1"})
-    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
-    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
-    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
-    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
-    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
-    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
-    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
-    TRCell():New(oSection, "A1_COD", cNextAlias, "Codigo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    oSection := TRSection():New(oReport, OEMToAnsi("Relatório de Produtos por Grupo"),{"SB1"})
+    TRCell():New(oSection, "BM_GRUPO", cNextAlias, "Código do Grupo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    TRCell():New(oSection, "B1_COD", cNextAlias, "Codigo do Produto", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    TRCell():New(oSection, "B1_FILIAL", cNextAlias, "Filial", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    TRCell():New(oSection, "B1_DESC", cNextAlias, "Descrição do Produto", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
+    TRCell():New(oSection, "BM_DESC", cNextAlias, "Descrição do Grupo", /*Picture*/, /*Tamanho*/, /*lPixel*/,  /*{|| }}*/)
 Return oReport
+
+// FUNÇÃO DE CONSULTAS
+Static Function ReportPrint()
+    Local oSection := oReport:Section(1)
+    Local cQuery := ""
+    Local nCount := 0
+
+    cQuery += "SELECT TOP 200" + ENTER
+    cQuery +=  "SB1.B1_FILIAL" + ENTER
+    cQuery +=  ",SB1.B1_COD" + ENTER
+    cQuery +=  ",SB1.B1_DESC" + ENTER
+    cQuery +=  ",SBM.BM_GRUPO" + ENTER
+    cQuery +=  " ,SBM.BM_DESC" + ENTER
+    cQuery +=  "FROM " + RETSQLNAME("SB1") + ENTER
+    cQuery +=  "LEFT JOIN " + RETSQLNAME("SBM") +" ON SBM.BM_FILIAL = SB1.B1_FILIAL AND SBM.BM_GRUPO = SB1.B1_GRUPO AND SBM.D_E_L_E_T_ = ' '" + ENTER
+    cQuery +=  "WHERE SB1.B1_FILIAL = ' '" + ENTER
+    cQuery +=  "AND SB1.D_E_L_E_T_ = ' '" + ENTER
+    If !EMPTY(MV_PAR01)
+        cQuery +=   "AND SB1.B1_GRUPO = '" + MV_PAR01 + "' " + ENTER
+    EndIf
+    cQuery += "ORDER BY SBM.BM_GRUPO, SB1.B1_COD"
+
+    DbUseArea(.T., "TOPCONN", TcGenQry(,, cQuery), cNextAlias)
+
+    Count to Count
+    (cNextAlias)->(dbgotop())
+    oReport:SetMeter(nCount)
+    oSection:Init()
+
+    While !(cNextAlias)->(Eof())
+        oReport:IncMeter()
+        oSection:Printline()
+        if oReport:Cancel()
+            Exit
+        EndIf
+        (cNextAlias)->(DbSkip())
+    Enddo
+
+Return
 
 // FUNÇÃO DE PERGUNTAS
 Static Function fValidPerg(cPerg)
@@ -41,22 +77,22 @@ Static Function fValidPerg(cPerg)
 		/* cEnvPass */ ,;
 		/* cEnvMod  */ "COM",; // Módulo: Compras (Sem o SIGA)
 		/* cFunName */ "Teste",; // Nome da função
-		/* aTables  */ {"SX1"} ;
+		/* aTables  */ {"SB1"} ;
 	)
 
     Local aAlias := GetArea()
     Local aRegs := {}
     Local i,j
 
-    cPerg := PadR(cPerg, Len(SX1->X1_GRUPO), " ")
+    cPerg := PadR(cPerg, Len(SB1->B1_GRUPO), " ")
 
-    AADD(aRegs,{cPerg,"01", "Estado","","","mv_ch1","C",2,0,0,"G","",MV_PAR01,,"","","","","","","","","","","","","","","","","","","","","","","","","12","","","","",""})
+    AADD(aRegs,{cPerg,"01", "Grupo","","","mv_ch1","C",2,0,0,"G","",MV_PAR01,,"","","","","","","","","","","","","","","","","","","","","","","","","12","","","","",""})
 
-    DbSelectArea("SX1")
-    SX1->(DbSetOrder(1))
+    DbSelectArea("SB1")
+    SB1->(DbSetOrder(1))
     For i := 1 To LEN(aRegs)
         if !DbSeek(cPerg+aRegs[i,2])
-            RecLock("SX1", .T.)
+            RecLock("SB1", .T.)
                 For j := 1 to FCount()
                     FieldPut(j, aRegs[i,j])
                 Next
